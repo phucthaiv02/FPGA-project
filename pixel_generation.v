@@ -4,7 +4,8 @@ module pixel_generation(
     input clk,                              // 100MHz from Basys 3
     input reset,                            // btnC
     input video_on,                         // from VGA controller
-    input [9:0] x, y,                       // from VGA controller
+    input [9:0] x, y,      
+    input btnU, btnL, btnD, btnR,                 // from VGA controller
     output reg [11:0] rgb                   // to DAC, to VGA controller
     );
     
@@ -12,9 +13,10 @@ module pixel_generation(
     parameter Y_MAX = 479;                  // bottom border of display area
     parameter SQ_RGB = 12'h0FF;             // red & green = yellow for square
     parameter BG_RGB = 12'hF00;             // blue background
-    parameter SQUARE_SIZE = 64;             // width of square sides in pixels
-    parameter SQUARE_VELOCITY_POS = 2;      // set position change value for positive direction
-    parameter SQUARE_VELOCITY_NEG = -2;     // set position change value for negative direction  
+    parameter SQUARE_SIZE = 40;             // width of square sides in pixels
+    parameter CHANGES = 5;                  // position change value when release buttons
+//    parameter SQUARE_VELOCITY_POS = 2;      // set position change value for positive direction
+//    parameter SQUARE_VELOCITY_NEG = -2;     // set position change value for negative direction  
     
     // create a 60Hz refresh tick at the start of vsync 
     wire refresh_tick;
@@ -33,18 +35,34 @@ module pixel_generation(
     // register control
     always @(posedge clk or posedge reset)
         if(reset) begin
-            sq_x_reg <= 0;
-            sq_y_reg <= 0;
-            x_delta_reg <= 10'h002;
-            y_delta_reg <= 10'h002;
+            sq_x_reg <= 300;
+            sq_y_reg <= 220;
+//            x_delta_reg <= 10'h002;
+//            y_delta_reg <= 10'h002;
         end
-        else begin
-            sq_x_reg <= sq_x_next;
-            sq_y_reg <= sq_y_next;
-            x_delta_reg <= x_delta_next;
-            y_delta_reg <= y_delta_next;
-        end
-    
+        else if(refresh_tick) begin
+        // Update x position based on left and right button presses
+        if (btnL && (sq_x_reg > CHANGES))
+            sq_x_reg <= sq_x_reg - CHANGES; // Move left
+        else if (btnL && (sq_x_reg <= CHANGES))
+            sq_x_reg <= 0;                  // Move to left edge if too close
+        
+        if (btnR && (sq_x_reg < (X_MAX - SQUARE_SIZE - CHANGES)))
+            sq_x_reg <= sq_x_reg + CHANGES; // Move right normally
+        else if (btnR && (sq_x_reg >= (X_MAX - SQUARE_SIZE - CHANGES)))
+            sq_x_reg <= X_MAX - SQUARE_SIZE; // Move exactly to the right edge
+        
+        // Update y position based on up and down button presses
+        if (btnU && (sq_y_reg > CHANGES))
+            sq_y_reg <= sq_y_reg - CHANGES; // Move up
+        else if (btnU && (sq_y_reg <= CHANGES))
+            sq_y_reg <= 0;                  // Move to top edge if too close
+        
+        if (btnD && (sq_y_reg < (Y_MAX - SQUARE_SIZE - CHANGES)))
+            sq_y_reg <= sq_y_reg + CHANGES; // Move down normally
+        else if (btnD && (sq_y_reg >= (Y_MAX - SQUARE_SIZE - CHANGES)))
+            sq_y_reg <= Y_MAX - SQUARE_SIZE; // Move exactly to the bottom edge
+    end
     // square boundaries
     assign sq_x_l = sq_x_reg;                   // left boundary
     assign sq_y_t = sq_y_reg;                   // top boundary
@@ -56,24 +74,6 @@ module pixel_generation(
     assign sq_on = (sq_x_l <= x) && (x <= sq_x_r) &&
                    (sq_y_t <= y) && (y <= sq_y_b);
                    
-    // new square position
-    assign sq_x_next = (refresh_tick) ? sq_x_reg + x_delta_reg : sq_x_reg;
-    assign sq_y_next = (refresh_tick) ? sq_y_reg + y_delta_reg : sq_y_reg;
-    
-    // new square velocity 
-    always @* begin
-        x_delta_next = x_delta_reg;
-        y_delta_next = y_delta_reg;
-        if(sq_y_t < 1)                              // collide with top display edge
-            y_delta_next = SQUARE_VELOCITY_POS;     // change y direction(move down)
-        else if(sq_y_b > Y_MAX)                     // collide with bottom display edge
-            y_delta_next = SQUARE_VELOCITY_NEG;     // change y direction(move up)
-        else if(sq_x_l < 1)                         // collide with left display edge
-            x_delta_next = SQUARE_VELOCITY_POS;     // change x direction(move right)
-        else if(sq_x_r > X_MAX)                     // collide with right display edge
-            x_delta_next = SQUARE_VELOCITY_NEG;     // change x direction(move left)
-    end
-    
     // RGB control
     always @*
         if(~video_on)

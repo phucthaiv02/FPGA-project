@@ -3,6 +3,7 @@
 module top(
     input clk_100MHz,       // from Basys 3
     input reset,            // btnC on Basys 3
+    input BtnU, BtnL, BtnD, BtnR,  
     output hsync,           // to VGA connector
     output vsync,           // to VGA connector
     output [11:0] rgb       // to DAC, 3 RGB bits to VGA connector
@@ -15,7 +16,8 @@ module top(
     
     vga_controller vc(.clk_100MHz(clk_100MHz), .reset(reset), .video_on(w_video_on), 
                       .hsync(hsync), .vsync(vsync), .p_tick(w_p_tick), .x(w_x), .y(w_y));
-    pixel_generation pg(.clk(clk_100MHz), .reset(reset), .video_on(w_video_on), .x(w_x), .y(w_y), .rgb(rgb_next));
+    pixel_generation pg(.clk(clk_100MHz), .reset(reset), .video_on(w_video_on), .x(w_x), .y(w_y),
+                      .btnU(BtnU), .btnL(BtnL), .btnD(BtnD), .btnR(BtnR), .rgb(rgb_next));
     
     // Buffer RGB
     always @(posedge clk_100MHz)
