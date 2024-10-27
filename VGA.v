@@ -10,17 +10,26 @@ module top(
     );
     parameter X_DELTA_INIT = 10'd2, Y_DELTA_INIT = 10'd2;
     
-    wire w_video_on, w_p_tick, w_refresh_tick;
+    wire w_video_on, w_p_tick, w_refresh_tick, clk_1Hz;
     wire [9:0] w_x, w_y;
+    
     reg [11:0] rgb_reg;
     wire [11:0] rgb_next;
-    wire [5:0] num_sq = 6'd5;
+    
+    reg [5:0] num_sq;
+    wire [5:0] num_sq_next;
+    
     reg status;
     wire status_next;
+    
+    reg [15:0] score;
+    wire [15:0] score_next;
+    
     reg [659:0] position;
     wire [19:0] sq_next;
     wire [639:0] position_next;
     
+    clock_generator cg(.clk(clk_100MHz), .reset(reset), .clk_1Hz(clk_1Hz));
     vga_controller vc(.clk_100MHz(clk_100MHz), .reset(reset), .video_on(w_video_on), 
                       .hsync(hsync), .vsync(vsync), 
                       .p_tick(w_p_tick), .refresh_tick(w_refresh_tick),
@@ -32,9 +41,9 @@ module top(
     random_square rs(.clk(clk_100MHz), .reset(reset), .refresh_tick(w_refresh_tick),
                      .status(status), .num_squares(num_sq), .position(position[639:0]), 
                      .position_next(position_next));
-    game_status gs(.clk(clk_100MHz), .reset(reset), .refresh_tick(w_refresh_tick),
-                   .position(position),
-                   .status(status_next));
+    game_status gs(.clk(clk_100MHz), .reset(reset), .clk_1Hz(clk_1Hz),
+                   .refresh_tick(w_refresh_tick), .position(position),
+                   .status(status_next), .num_squares(num_sq_next), .score(score_next));
     pixel_generation pg(.clk(clk_100MHz), .reset(reset), 
                         .x(w_x), .y(w_y), /* .status(status), */ 
                         .video_on(w_video_on), .position(position),
@@ -55,6 +64,7 @@ module top(
     always @(posedge clk_100MHz or posedge reset) begin
         if(reset) begin
             status <= 1;
+            score <= 0;
 //            position[659:640] <= {10'd220, 10'd300};  
 //            position[639:600] <= { Y_DELTA_INIT, X_DELTA_INIT, 10'd0, 10'd600}; 
 //            position[599:560] <= { Y_DELTA_INIT, X_DELTA_INIT, 10'd0, 10'd560};
@@ -80,6 +90,8 @@ module top(
             position[659:640] <= sq_next;
             position[639:0] <= position_next;
             status <= status_next;
+            score <= score_next;
+            num_sq = num_sq_next;
         end
     end 
             

@@ -22,14 +22,17 @@
 
 module game_status(
     input clk,
+    input clk_1Hz,
     input reset,
     input refresh_tick,
     input[659:0] position,
-    output reg status
+    output reg status,
+    output reg [15:0] score,
+    output reg [5:0] num_squares
     );
     parameter SQUARE_SIZE = 30; 
     wire [9:0] main_sq_x_l, main_sq_x_r, main_sq_y_t, main_sq_y_b;
-    reg[15:0] w_status;
+    reg [15:0] w_status;
     assign main_sq_x_l = position[649:640];
     assign main_sq_x_r = position[649:640] + SQUARE_SIZE - 1;
     assign main_sq_y_t = position[659:650];
@@ -58,6 +61,15 @@ module game_status(
         end
     endgenerate
     
+    always @(posedge clk_1Hz or posedge reset) begin
+        if(reset) begin 
+            score <= 0;
+            num_squares <= 0;
+        end else begin
+            score <= score + 1;
+            num_squares <= score / 5;
+        end
+    end
     always @* begin
         if (w_status)
             status = 0;   
