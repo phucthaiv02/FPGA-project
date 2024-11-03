@@ -46,7 +46,7 @@ module top(
     game_status gs(.clk(clk_1Hz), .reset(reset),
                    .refresh_tick(w_refresh_tick), .position(position),
                    .status(status_next), .num_squares(num_sq_next));
-    score_display(.clk_1Hz(clk_1Hz), .clk_100MHz(clk_100MHz), .reset(reset), .status(status_next),
+    score_display sd(.clk_1Hz(clk_1Hz), .clk_100MHz(clk_100MHz), .reset(reset), .status(status_next),
                   .Anode_Activate(Anode_Activate), .LED_out(LED_out));
     pixel_generation pg(.clk(clk_100MHz), .reset(reset), 
                         .x(w_x), .y(w_y), /* .status(status), */ 

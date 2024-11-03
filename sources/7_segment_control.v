@@ -20,7 +20,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module score_display(
+module score_display (
     input clk_1Hz,
     input clk_100MHz, 
     input reset, 
