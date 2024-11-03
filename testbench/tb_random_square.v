@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
-module tb_random_square;
-    // Khai báo biến mô phỏng
+module random_square_tb;
+
     reg clk;
     reg reset;
     reg refresh_tick;
@@ -10,7 +10,6 @@ module tb_random_square;
     reg [639:0] position;
     wire [639:0] position_next;
 
-    // Khởi tạo module cần kiểm tra
     random_square uut (
         .clk(clk),
         .reset(reset),
@@ -21,55 +20,54 @@ module tb_random_square;
         .position_next(position_next)
     );
 
-    // Tạo xung nhịp 100MHz
     initial begin
         clk = 0;
-        forever #5 clk = ~clk; // Chu kỳ 10 ns tương đương với tần số 100MHz
+        forever #5 clk = ~clk; 
     end
 
-    // Quy trình kiểm thử
     initial begin
-        // Khởi tạo reset và các tín hiệu ban đầu
-        reset = 1;
         refresh_tick = 0;
+        forever #20 refresh_tick = ~refresh_tick;
+    end
+    
+    integer speed_y, speed_x, pos_y, pos_x;
+    integer i;
+    initial begin
+        reset = 1;
         status = 0;
         num_squares = 0;
         position = 0;
-        #20 reset = 0; // Bỏ reset sau 20 ns
-
-        // Kiểm thử 1: Khởi tạo với không có ô vuông
-        #10;
-        $display("Initial position (no squares): position_next = %h", position_next);
-
-        // Kiểm thử 2: Thêm một số ô vuông và bật refresh_tick
-        num_squares = 2;
-        position[39:0] = {10'd100, 10'd100}; // Ô vuông 1
-        position[79:40] = {10'd200, 10'd200}; // Ô vuông 2
-        status = 1;
-        refresh_tick = 1;
-        #10 refresh_tick = 0;
-
-        // Kiểm tra vị trí sau khi cập nhật
-        #20;
-        $display("After adding squares and refresh tick: position_next = %h", position_next);
-
-        // Kiểm thử 3: Thay đổi số lượng ô vuông và kiểm tra vị trí
-        num_squares = 3;
-        position[119:80] = {10'd300, 10'd300}; // Ô vuông 3
-        refresh_tick = 1;
-        #10 refresh_tick = 0;
-
-        #20;
-        $display("After adding another square: position_next = %h", position_next);
-
-        // Kiểm thử 4: Đặt lại reset và kiểm tra vị trí của ô vuông
-        reset = 1;
-        #20 reset = 0;
+        #50; 
         
-        #20;
-        $display("After reset: position_next = %h", position_next);
+        reset = 0;
+        status = 1;
+        num_squares = 1; 
+        
+        #1000; 
+        
+        #1000; 
 
-        // Kết thúc mô phỏng
+        status = 0;
+        #1000; 
+
         $stop;
     end
+
+    initial begin
+        $monitor("Time=%0dns | status=%b | num_squares=%d", $time, status, num_squares);
+    end
+    
+    always @(posedge clk) begin
+        position <= position_next;
+    end
+
+    always @(posedge refresh_tick) begin
+        speed_y = position_next[39:30];
+        speed_x = position_next[29:20];
+        pos_y = position_next[19:10];
+        pos_x = position_next[9:0];
+        
+        $display("Time=%0dns |status=%0d | speed_y=%0d | speed_x=%0d | pos_y=%0d | pos_x=%0d", $time, status, speed_y, speed_x, pos_y, pos_x);
+    end
+
 endmodule

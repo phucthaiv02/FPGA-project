@@ -1,16 +1,18 @@
 `timescale 1ns / 1ps
 
-module tb_square_controller;
-    // Khai báo biến mô phỏng
+module square_controller_tb;
+
     reg clk;
     reg reset;
-    reg btnU, btnL, btnD, btnR;
+    reg btnU;
+    reg btnL;
+    reg btnD;
+    reg btnR;
     reg refresh_tick;
     reg status;
     reg [19:0] position;
     wire [19:0] position_next;
 
-    // Khởi tạo module cần kiểm tra
     square_controller uut (
         .clk(clk),
         .reset(reset),
@@ -24,73 +26,64 @@ module tb_square_controller;
         .position_next(position_next)
     );
 
-    // Tạo xung nhịp 100MHz
     initial begin
         clk = 0;
-        forever #5 clk = ~clk; // Chu kỳ 10 ns tương đương với tần số 100MHz
+        forever #5 clk = ~clk; 
     end
 
-    // Quy trình kiểm thử
     initial begin
-        // Khởi tạo reset và các tín hiệu ban đầu
-        reset = 1;
-        btnU = 0;
-        btnL = 0;
-        btnD = 0;
-        btnR = 0;
         refresh_tick = 0;
-        status = 1;
-        position = {10'd220, 10'd300}; // Vị trí ban đầu
-        #20 reset = 0; // Bỏ reset sau 20 ns
+        forever #20 refresh_tick = ~refresh_tick; 
+    end
 
-        // Kiểm thử 1: Di chuyển lên
-        btnU = 1;
-        refresh_tick = 1;
-        #10 refresh_tick = 0;
-        btnU = 0;
-        #20;
-        $display("Move Up: position_next = %d, %d", position_next[19:10], position_next[9:0]);
-
-        // Kiểm thử 2: Di chuyển xuống
-        btnD = 1;
-        refresh_tick = 1;
-        #10 refresh_tick = 0;
-        btnD = 0;
-        #20;
-        $display("Move Down: position_next = %d, %d", position_next[19:10], position_next[9:0]);
-
-        // Kiểm thử 3: Di chuyển trái
-        btnL = 1;
-        refresh_tick = 1;
-        #10 refresh_tick = 0;
-        btnL = 0;
-        #20;
-        $display("Move Left: position_next = %d, %d", position_next[19:10], position_next[9:0]);
-
-        // Kiểm thử 4: Di chuyển phải
-        btnR = 1;
-        refresh_tick = 1;
-        #10 refresh_tick = 0;
-        btnR = 0;
-        #20;
-        $display("Move Right: position_next = %d, %d", position_next[19:10], position_next[9:0]);
-
-        // Kiểm thử 5: Di chuyển ô vuông đến cạnh trên cùng của màn hình
-        position = {10'd5, 10'd300}; // Đặt vị trí gần biên trên
-        btnU = 1;
-        refresh_tick = 1;
-        #10 refresh_tick = 0;
-        btnU = 0;
-        #20;
-        $display("Move Up to Edge: position_next = %d, %d", position_next[19:10], position_next[9:0]);
-
-        // Kiểm thử 6: Đặt lại reset và kiểm tra vị trí ô vuông
+    initial begin
         reset = 1;
-        #20 reset = 0;
-        #20;
-        $display("After Reset: position_next = %d, %d", position_next[19:10], position_next[9:0]);
+        btnU = 0;
+        btnL = 0;
+        btnD = 0;
+        btnR = 0;
+        status = 0;
+        position = 20'd0;
+        #10;
+        reset = 0;
+        status = 1;
 
-        // Kết thúc mô phỏng
+        position = {10'd220, 10'd300}; // sq_y_reg = 220, sq_x_reg = 300
+
+        #50;
+
+        btnL = 1;
+        #100;
+        btnL = 0;
+
+        btnU = 1;
+        #100;
+        btnU = 0;
+
+        btnR = 1;
+        #100;
+        btnR = 0;
+
+        btnD = 1;
+        #100;
+        btnD = 0;
+
+        btnL = 1;
+        btnU = 1;
+        #100;
+        btnL = 0;
+        btnU = 0;
+
         $stop;
     end
+
+    initial begin
+        $monitor("Time=%0dns | btnU=%b btnL=%b btnD=%b btnR=%b | position_next x=%d y=%d",
+                 $time, btnU, btnL, btnD, btnR, position_next[9:0], position_next[19:10]);
+    end
+
+    always @(posedge refresh_tick) begin
+        position <= position_next;
+    end
+
 endmodule
